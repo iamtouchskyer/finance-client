@@ -32,9 +32,19 @@ class HorizontalLoginForm extends Component {
     };
   }
 
-  componentDidMount() {
-    // To disabled submit button at the beginning.
-    this.props.form.validateFields();
+  searchBtnDidClick = (e) => {
+    this.props.doSearch(this.state);   
+  }
+
+  clearBtnDidClick = (e) => {
+    this.setState((prevState, props) => {
+      let newState = {...prevState};
+      newState.roic.enabled = newState.roa.enabled =  newState.roe.enabled = false;
+
+      this.props.doSearch(newState);   
+
+      return newState;
+    })
   }
 
   checkBoxDidClick = (e) => {
@@ -44,10 +54,6 @@ class HorizontalLoginForm extends Component {
     theNewValue.enabled = !theNewValue.enabled;
 
     this.setState(_.zipObject([theKey], [theNewValue]));
-  }
-
-  searchBtnDidClick = (e) => {
-    this.props.doSearch(this.state);   
   }
 
   yearsDidChange = (theKey, theValue) => {
@@ -73,7 +79,7 @@ class HorizontalLoginForm extends Component {
 
     return (
       <Tooltip title={tooltip[theKey]}>
-        <Checkbox style={{ width: '2%', marginRight: '1%' }} id={theKey} onChange={this.checkBoxDidClick.bind(this)}></Checkbox>
+        <Checkbox style={{ width: '2%', marginRight: '1%' }} id={theKey} value={this.state[theKey].enabled} onChange={this.checkBoxDidClick.bind(this)}></Checkbox>
         <span style={{ width: '5%', marginRight: '1%' }} disabled={!this.state[theKey].enabled}>过去</span>
         <InputNumber style={{ width: '24%', marginRight: '1%' }} placeholder="5" id={theKey+'.years'} value={this.state[theKey].years} onChange={_.partial(this.yearsDidChange.bind(this), theKey)} disabled={!this.state[theKey].enabled}/>
         <span style={{ width: '18%', marginRight: '1%' }} disabled={!this.state[theKey].enabled}>年{theName}高于</span>
@@ -100,12 +106,18 @@ class HorizontalLoginForm extends Component {
           <Col xs={{ span: 12 }} sm={{ span:12 }} md = {{span:12}} lg={{ span: 6 }}>
               <Button
                 type="primary"
-                htmlType="submit"
                 onClick={this.searchBtnDidClick.bind(this)}
                 disabled={!this.state.roic.enabled && !this.state.roa.enabled && !this.state.roe.enabled}
               >
                 搜索
               </Button>
+              <Button
+                type="danger"
+                onClick={this.clearBtnDidClick.bind(this)}
+                disabled={!this.state.roic.enabled && !this.state.roa.enabled && !this.state.roe.enabled}
+              >
+              清除
+            </Button>
           </Col>
         </Row>         
     );

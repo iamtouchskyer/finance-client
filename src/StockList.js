@@ -2,12 +2,118 @@ import React, { Component } from 'react';
 import _ from 'lodash';
 import axios from 'axios';
 import ReactTable from "react-table";
-import { Layout, Menu, Breadcrumb, Icon } from 'antd';
+import { Layout, Menu, Breadcrumb, Icon, Spin } from 'antd';
 
 import Filter from './filter';
 
 const { Header, Content, Footer, Sider } = Layout;
 
+class LatestStockBonusRate extends Component {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      dividend_rate: -1 
+    };
+
+    this.theInterval = null;
+  }
+
+  fetchPrice = () => {
+    axios.get('http://localhost:3030/api/v1/stock/dividend', {
+      params: {
+        region: this.props.region,
+        symbol: this.props.symbol,
+      },
+    })
+    .then(response => {
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        throw new Error('Something went wrong on api server!');
+      }
+    })
+    .then(response => {
+        this.setState({
+          dividend_rate : response.dividend_rate
+        });
+    }).catch(error => {
+      console.error(error);
+    });
+  }
+
+  componentDidMount() {
+    this.fetchPrice();
+
+    this.theInterval = setInterval(this.fetchPrice, 10000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.theInterval);
+  }
+
+  render() {
+    if (this.state.dividend_rate < 0)
+      return <Spin />;
+    else
+      return this.state.dividend_rate > 4 ? (<span style={{ color: 'red' }}><Icon type="rise" theme="outlined" />{this.state.dividend_rate}</span>)
+              : this.state.dividend_rate > 3 ? (<span  style={{ color: 'orange' }}><Icon type="rise" theme="outlined" />{this.state.dividend_rate}</span>)
+              : (<span  style={{ color: 'green' }}><Icon type="fall" theme="outlined" />{this.state.dividend_rate}</span>)
+  }
+}
+
+
+class LatestStockPrice extends Component {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      price: -1 
+    };
+
+    this.theInterval = null;
+  }
+
+  fetchPrice = () => {
+    axios.get('http://localhost:3030/api/v1/stock/latestprice', {
+      params: {
+        region: this.props.region,
+        symbol: this.props.symbol,
+      },
+    })
+    .then(response => {
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        throw new Error('Something went wrong on api server!');
+      }
+    })
+    .then(response => {
+        this.setState({
+          price : response['currentPrice']
+        });
+    }).catch(error => {
+      console.error(error);
+    });
+  }
+
+  componentDidMount() {
+    this.fetchPrice();
+
+    this.theInterval = setInterval(this.fetchPrice, 10000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.theInterval);
+  }
+
+  render() {
+    if (this.state.price < 0)
+      return <Spin />;
+    else
+      return <span>{this.state.price}</span>
+  }
+}
 class StockList extends Component {
   constructor(props) {
     super(props);
@@ -30,8 +136,13 @@ class StockList extends Component {
         Header: '地区',
         accessor: 'stockRegion',
       }, {
+        Header: '当前价格',
+        accessor: 'stockSymbol',
+        Cell: props => <LatestStockPrice key={props.original.stockSymbol} region={props.original.stockRegion} symbol={props.original.stockSymbol} /> 
+      }, {
         Header: '现金分红率',
         accessor: 'stockDividendRate',
+        Cell: props => <LatestStockBonusRate key={props.original.stockSymbol} region={props.original.stockRegion} symbol={props.original.stockSymbol} /> 
       }, {
         Header: '投入资本回报率(ROIC)',
         id: 'roic', // Required because our accessor is not a string
@@ -53,7 +164,7 @@ class StockList extends Component {
         params: {
           page: 0,
           size: 5000,
-        }
+        },
       })
       .then(response => {
         if (response.status === 200) {
@@ -82,7 +193,7 @@ class StockList extends Component {
         accessor: `${metric}.${yr}`
       };
     });
-
+    
   doSearch = (props) => {
     let data = [...this.fullData];
 
@@ -129,7 +240,8 @@ class StockList extends Component {
             <ReactTable
               data={this.state.data}
               columns={this.columns}
-            />
+            >
+          </ReactTable>
           </div> 
         </Content>
         <Footer style={{ textAlign: 'center' }}>
